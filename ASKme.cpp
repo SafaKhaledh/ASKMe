@@ -152,7 +152,7 @@ struct User {
 				}
 		   }
 
-			// test
+			// test // module
 			for(auto &item: parent_children_Questions) {
 				auto p_ques = item.first;
 				auto child_questions = item.second;
@@ -171,6 +171,67 @@ struct User {
 
 
 };
+
+void Load_ques_File() {
+	// this code assumes that the questions are in order parent have its children after it
+	/* question file > question map */
+	string question_info;
+	ifstream questions_input ("questions.txt", ios::in);
+	if(!questions_input) {
+		cout << "can't open questions.txt file";
+		return;
+	}
+
+	Question cur_parent_question;
+	while(getline(questions_input, question_info)) {
+			istringstream iss(question_info);
+
+			Question question;
+			string is_answered;
+			string question_id;
+
+			// Get the questions info from the file & load it into the question object in a proper way!
+			// Note, file structure is comma separated!
+			getline(iss, question_id, ',');
+			question.question_id = stoi(question_id);
+
+			getline(iss, question.parent_question_id, ',');
+			getline(iss, question.From_user_id, ',');
+			getline(iss, question.To_user_id, ',');
+			getline(iss, is_answered, ',');
+			if(is_answered == "1") // keep in mind default values in the  Question struct
+				question.is_answered = true;
+			getline(iss, question.question, ',');
+			getline(iss, question.answer);
+
+			// Loading parent Questions into the map   parent_question_id == "-1"
+			if(question.parent_question_id == "-1") {
+				parent_children_Questions[question] = vector<Question>(); // review chatgpt to know why this is valid!
+				cur_parent_question = question;
+			}
+
+			// loading child Questions   parent_question_id != "-1"
+			else
+				parent_children_Questions[cur_parent_question].push_back(question);
+	}
+
+
+	// test load questions file into the map properly
+	for(auto &thread_question: parent_children_Questions) {
+			auto p_ques = thread_question.first;
+			auto children_questions = thread_question.second;
+
+			cout << p_ques.question_id << "," << p_ques.parent_question_id << "," << p_ques.From_user_id<< ","
+				 << p_ques.To_user_id<< "," <<p_ques.is_answered << "," << p_ques.question << "," << p_ques.answer
+				 << "\n";
+			for(auto &child_ques: children_questions) {
+				cout << child_ques.question_id << "," << child_ques.parent_question_id << "," << child_ques.From_user_id<< ","
+					 << child_ques.To_user_id<< "," << child_ques.is_answered << "," << child_ques.question << "," << child_ques.answer
+					 << "\n";
+			}
+   }
+}
+
 
 void Update_questionsFile() {
 	// After each operation edit the questions file
@@ -195,7 +256,8 @@ void Update_questionsFile() {
 	}
 }
 
-void update_last_session_file(User user) {
+void update_last_session_file() {
+     //	map > file
 	// called at the end of the current session
 	ofstream cur_session_info("last_session_info.txt", ios::out);
 	if(!cur_session_info) {
@@ -203,10 +265,10 @@ void update_last_session_file(User user) {
 		return;
 	}
 	// test
-	cout << "update last session file \n last_user_id: " << user.user_id << "\n";
+//	cout << "update last session file \n last_user_id: " << user.user_id << "\n";
 
-	cur_session_info <<"last_user_id:" <<  user.user_id << "\n";
-	cur_session_info << "last_question_id:" << 0;
+	cur_session_info <<"last_user_id:" << last_session_info["last_user_id"] << "\n";
+	cur_session_info << "last_question_id:" << last_session_info["last_question_id"];
 }
 
 vector<User> users;
@@ -367,10 +429,8 @@ int Menu() {  // called after signup or login operation // it does internal chec
 }
 
 void Run(User user) {
-//	load_last_session_info(); //
-//	Load_ques_File();
+	Load_ques_File();
 	while(true) {
-		Update_questionsFile();
 		int choice = Menu();
 //		if(choice == 1) {
 //			user.print_ques_to_me();
@@ -388,6 +448,7 @@ void Run(User user) {
 		 if(choice == 5) {
 //			 cout << "called menu choice 5" << "\n";
 			user.Ask_question();
+			update_last_session_file(); // update last question id
 		}
 		else if(choice == 6) {
 			List_system_users();
@@ -399,7 +460,7 @@ void Run(User user) {
 //			return;
 //		}
 
-//		Update_questionsFile(); // is there a better position than that?
+		Update_questionsFile(); // is there a better position than that? i think this is the best one!
 	}
 }
 
@@ -423,7 +484,7 @@ int main() {
 //		load_last_session_info(); // does internal checks
 
 		user = SignUp(); // does internal checks
-		update_last_session_file(user); // edit user_id no edit to questions
+		update_last_session_file(); // edit user_id no edit to questions
 		Update_usersFile(); //
 
 	}
