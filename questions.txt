@@ -1,2 +1,2 @@
-1,-1,1,2,0,Noha, How old are you?,
-2,-1,1,2,0,It was nice to chat to you!,
+1,-1,2,1,0,Should I learn c++ first or java,
+2,1,2,1,0,why do you think so!,
