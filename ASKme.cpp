@@ -166,8 +166,80 @@ struct User {
 			}
 			return;
 		}
+	void Answer_question() {
+			// Answer a question or edits its answer
+			cout << "Enter Question id or -1 to cancel"; // if
+			int ques_id;
+			cin >> ques_id;
+
+			if (ques_id == -1)
+				return;
+			// Search question id in questions map
+			for(auto &thread_question: parent_children_Questions) {
+				auto p_ques = thread_question.first;
+				auto &children_quest = thread_question.second;
+
+				if( stoi(p_ques.To_user_id) == user_id) {
+
+					if(p_ques.question_id == ques_id) {
+						cout <<"Question Id (" << ques_id << ") from user id(" << p_ques.From_user_id <<")		Question: "
+							 << p_ques.question << "\n";
+						// Display answer if any
+						if(p_ques.is_answered) {
+							cout << "		Answer: " << p_ques.answer << "\n\n";
+							cout << "Warning: Already answered. Answer will be updated\n";
+						}
+
+						cout << "Enter answer: ";
+						cin.ignore();
+						getline(cin, p_ques.answer);
+						p_ques.is_answered = true; // Now it is answered, consistency!
+
+						 //just edit map key information!
+						parent_children_Questions.erase(thread_question.first);  // review chatgpt mpa key removal
+						parent_children_Questions[p_ques] = children_quest;
+
+						// test module
+						for(auto &thread_question: parent_children_Questions) {
+							auto p_ques = thread_question.first;
+							auto children_quest = thread_question.second;
+//							if(parent_children_Questions.find(thread_question.first) == parent_children_Questions.end())
+//								cout << "Deleted p_ques successfully\n";
+
+							p_ques.print_Question();
+						}
+						return;
+					}
+
+					else {
+					for(auto &child_ques: children_quest) {
+						if(child_ques.question_id == ques_id) {
+							cout <<"Question Id (" << ques_id << ") from user id(" << child_ques.From_user_id <<")		Question: "
+								 << child_ques.question << "\n";
+							// Display answer if any
+							if(child_ques.is_answered) {
+								cout << "		Answer: " << child_ques.answer << "\n\n";
+								cout << "Warning: Already answered. Answer will be updated";
+							}
+
+							cout << "Enter answer: ";
+							cin.ignore();
+							getline(cin, child_ques.answer);
+							child_ques.is_answered = true; // Now it is answered, consistency!
+
+							// test module
+							child_ques.print_Question();
+							return;
 
 
+						}
+					}
+
+				}
+			}
+		}
+
+	}
 
 
 };
@@ -254,6 +326,7 @@ void Update_questionsFile() {
 			questions_output << "\n";
 		}
 	}
+	return;
 }
 
 void update_last_session_file() {
@@ -439,13 +512,13 @@ void Run(User user) {
 //		else if(choice == 2) {
 //			user.print_ques_from_me();
 //		}
-//		else if(choice == 3) {
-//			user.Answer_question();
-//		}
+		if(choice == 3) {
+			user.Answer_question();
+		}
 //		else if(choice == 4) {
 //			user.Delete_question();
 //		}
-		 if(choice == 5) {
+		else if(choice == 5) {
 //			 cout << "called menu choice 5" << "\n";
 			user.Ask_question();
 			update_last_session_file(); // update last question id
