@@ -1,2 +1,2 @@
-1,-1,2,1,0,Should I learn c++ first or java,
-2,1,2,1,0,why do you think so!,
+1,-1,2,1,1,Should I learn c++ first or java,I think C++ is a better start
+2,1,2,1,1,why do you think so!,Just Google. There is an answer on Quora
