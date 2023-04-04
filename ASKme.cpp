@@ -137,10 +137,11 @@ void Display_Edit_Question(Question &question) {
 	cout <<"Question Id (" << question.question_id << ") ";
 	if(!question.asked_anonymously)
 		cout <<"from user id(" << question.From_user_id <<")";
-	cout << "Question: " << question.question << "\n";
+
+	cout << "\t\tQuestion: " << question.question << "\n";
 	// Display answer if any
 	if(question.is_answered) {
-		cout << "		Answer: " << question.answer << "\n\n";
+		cout << "\tAnswer: " << question.answer << "\n\n";
 		cout << "Warning: Already answered. Answer will be updated\n";
 	}
 
@@ -281,14 +282,14 @@ struct User {
 				auto p_ques = thread_question.first;
 				auto &children_quest = thread_question.second;
 
-				if(p_ques.To_user_id == user_id) {
+				if(p_ques.To_user_id == user_id) { // check if it is to me, then its childs also to me!
 
-					if(p_ques.question_id == ques_id) {
-						Display_Edit_Question(p_ques);
+					if(p_ques.question_id == ques_id) { // I want to answer a specific question to me
+						Display_Edit_Question(p_ques);  // Edit copy of the key
 
 						 //just edit map key information!
 						parent_children_Questions.erase(thread_question.first);  // review chatgpt map key removal
-						parent_children_Questions[p_ques] = children_quest;
+						parent_children_Questions[p_ques] = children_quest;      // Add the new updated key to the map
 
 						// test module
 						print_map();
@@ -349,13 +350,14 @@ void Load_ques_File() {
 	// this code assumes that the questions are in order parent have its children after it
 	/* question file > question map */
 	string question_info;
+	Question cur_parent_question;
+
 	ifstream questions_input ("questions.txt", ios::in);
 	if(!questions_input) {
 		cout << "can't open questions.txt file";
 		return;
 	}
 
-	Question cur_parent_question;
 	while(getline(questions_input, question_info)) {
 			istringstream iss(question_info);
 
