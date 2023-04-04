@@ -51,26 +51,78 @@ struct Question {
 	// problem when running program many times
     int question_id;
     bool is_answered = false;
+    bool asked_anonymously = false;
 	string question;
 	string answer = "";
 	string parent_question_id;
-	string From_user_id;
-	string To_user_id;
+	int From_user_id;
+	int To_user_id;
+
 
 	Question() { };
-	Question(string question_, string From_user_id_, string To_user_id_,string parent_question_id_) {
+	Question(string question_, int From_user_id_, int To_user_id_,string parent_question_id_, bool asked_anonymously_) {
 		question = question_;
 		From_user_id = From_user_id_;
 		To_user_id = To_user_id_;
 		parent_question_id = parent_question_id_;
 		question_id = ++last_session_info["last_question_id"];
+		asked_anonymously = asked_anonymously_;
 
 	}
 
-	// for testing
-	void print_Question() {
-		cout << question_id << " " << parent_question_id << " " << From_user_id << " "
-			 << To_user_id << " " << is_answered << " " << question << " " << answer << "\n";
+	// for testing, updating files
+	void print_Question(ostream& output_stream) {
+		output_stream<< question_id << "," << parent_question_id << "," << From_user_id << ","
+			         << To_user_id << "," << is_answered << "," << asked_anonymously << ","
+					 << question << "," << answer << "\n";
+	}
+
+	void print_feed_question() {
+		if(parent_question_id != "-1")
+			cout <<"Thread parent Question Id (" << parent_question_id << ")";
+		cout <<"Question Id (" << question_id << ")";
+
+		if(!asked_anonymously)
+			cout <<" from user id(" << From_user_id <<")";
+
+		cout<<" To user id(" << To_user_id << ")\t\tQuestion: "
+			<< question << "\n";
+		cout << "\tAnswer: " << answer << "\n";
+	}
+
+	void print_question_ToMe() const{
+		if(parent_question_id != "-1")
+			cout<<"\tThread: ";
+
+		cout <<"Question Id (" << question_id << ")" ;
+
+		if (!asked_anonymously)
+			cout << " from user id(" << From_user_id << ")";
+
+		cout << "\t\tQuestion: " << question << "\n";
+		// Display answer if any
+		if(is_answered) {
+			if(parent_question_id != "-1")
+				cout << "\tThread:\t";
+			cout << "\tAnswer: " <<answer << "\n\n";
+
+		}
+		else
+			cout << "\n";
+	}
+
+	 void print_question_FromMe() const{
+		cout <<"Question Id (" << question_id << ")";
+				if(!(allow_anonymous_ques(To_user_id)))
+					cout << " !AQ"; // the other guy can see my id!
+		cout <<" to user id(" << To_user_id <<")\t\tQuestion: "
+			 << question << "\t";
+		// Display answer if any
+		if(is_answered) {
+			cout << "Answer: " <<answer << "\n";
+		}
+		else
+			cout << " Not Answered YET\n";
 	}
 };
 
@@ -81,7 +133,36 @@ bool compare_Questions(const Question &Question1, const Question &Question2) {
 	return false;
 }
 
+void Display_Edit_Question(Question &question) {
+	cout <<"Question Id (" << question.question_id << ") ";
+	if(!question.asked_anonymously)
+		cout <<"from user id(" << question.From_user_id <<")";
+	cout << "Question: " << question.question << "\n";
+	// Display answer if any
+	if(question.is_answered) {
+		cout << "		Answer: " << question.answer << "\n\n";
+		cout << "Warning: Already answered. Answer will be updated\n";
+	}
+
+	cout << "Enter answer: ";
+	cin.ignore();
+	getline(cin, question.answer);
+	question.is_answered = true; // Now it is answered, consistency!
+	return;
+}
+
 map<Question, vector<Question>, decltype(&compare_Questions)> parent_children_Questions(&compare_Questions);
+
+void print_map() {
+	for(auto &item: parent_children_Questions) {
+		auto p_ques = item.first;
+		auto &child_questions = item.second;
+		p_ques.print_Question(cout);
+
+		for (auto &child_ques: child_questions)
+			child_ques.print_Question(cout);
+	}
+}
 
 struct User {
     int user_id;
@@ -111,8 +192,37 @@ struct User {
 			cout<<"ID: " << user_id << "\t\t" << "Name: " << name <<"\n";
 	}
 
+	void print_ques_to_me() {
+		// Access each pair in the map
+		for(const auto &parent_children_Question: parent_children_Questions) {
+			const auto &p_ques = parent_children_Question.first;  // Review chat gpt for why const in these 2 lines
+			const auto &children_questions = parent_children_Question.second;
+
+			if(p_ques.To_user_id == user_id) { // if p_ques is to me, then its children questions also to me
+				p_ques.print_question_ToMe();
+				for(const auto &child_ques: children_questions) {
+					child_ques.print_question_ToMe();
+				}
+			}
+		}
+	}
+
+	void print_ques_from_me() {
+		for(const auto &parent_children_Question: parent_children_Questions) {
+			const auto &p_ques = parent_children_Question.first;
+			const auto &children_questions = parent_children_Question.second;
+
+			if(p_ques.From_user_id == user_id) // remove bracket for some reason in design
+				p_ques.print_question_FromMe();
+				for(const auto &child_ques: children_questions) {
+					if(child_ques.From_user_id == user_id)  // it is not necessary that children questions are all from me
+						child_ques.print_question_FromMe();
+				}
+		}
+	}
+
 	void Ask_question() {
-			int To_user_id;
+			int To_user_id, Asked_anonymously;
 			cout << "Enter user id or -1 to cancel: ";
 			cin >> To_user_id;
 
@@ -125,7 +235,10 @@ struct User {
 
 				cout << "Note: Anonymous questions are not allowed for this user\n";
 			}
-
+			else {
+				cout << "Ask Anonymously 0 or 1: ";
+				cin >> Asked_anonymously;
+			}
 			cout << "For thread question, Enter Question id or -1 for new question: ";
 			string parent_question_id;
 			cin >> parent_question_id;
@@ -135,7 +248,7 @@ struct User {
 			string question_txt;
 			getline(cin, question_txt); // we have spaces!
 
-			Question question(question_txt, to_string(user_id), to_string(To_user_id), parent_question_id);
+			Question question(question_txt, user_id, To_user_id, parent_question_id, Asked_anonymously);
 
      		// if it is a parent question, insert it as key in parent children questions map
 			if(question.parent_question_id == "-1")
@@ -152,18 +265,8 @@ struct User {
 				}
 		   }
 
-			// test // module
-			for(auto &item: parent_children_Questions) {
-				auto p_ques = item.first;
-				auto child_questions = item.second;
-
-				// print map content
-
-				p_ques.print_Question();
-
-				for (auto child_ques: child_questions)
-					child_ques.print_Question();
-			}
+			// test module
+			print_map();
 			return;
 		}
 	void Answer_question() {
@@ -174,72 +277,70 @@ struct User {
 
 			if (ques_id == -1)
 				return;
-			// Search question id in questions map
 			for(auto &thread_question: parent_children_Questions) {
 				auto p_ques = thread_question.first;
 				auto &children_quest = thread_question.second;
 
-				if( stoi(p_ques.To_user_id) == user_id) {
+				if(p_ques.To_user_id == user_id) {
 
 					if(p_ques.question_id == ques_id) {
-						cout <<"Question Id (" << ques_id << ") from user id(" << p_ques.From_user_id <<")		Question: "
-							 << p_ques.question << "\n";
-						// Display answer if any
-						if(p_ques.is_answered) {
-							cout << "		Answer: " << p_ques.answer << "\n\n";
-							cout << "Warning: Already answered. Answer will be updated\n";
-						}
-
-						cout << "Enter answer: ";
-						cin.ignore();
-						getline(cin, p_ques.answer);
-						p_ques.is_answered = true; // Now it is answered, consistency!
+						Display_Edit_Question(p_ques);
 
 						 //just edit map key information!
-						parent_children_Questions.erase(thread_question.first);  // review chatgpt mpa key removal
+						parent_children_Questions.erase(thread_question.first);  // review chatgpt map key removal
 						parent_children_Questions[p_ques] = children_quest;
 
 						// test module
-						for(auto &thread_question: parent_children_Questions) {
-							auto p_ques = thread_question.first;
-							auto children_quest = thread_question.second;
-//							if(parent_children_Questions.find(thread_question.first) == parent_children_Questions.end())
-//								cout << "Deleted p_ques successfully\n";
-
-							p_ques.print_Question();
-						}
+						print_map();
 						return;
 					}
 
-					else {
-					for(auto &child_ques: children_quest) {
-						if(child_ques.question_id == ques_id) {
-							cout <<"Question Id (" << ques_id << ") from user id(" << child_ques.From_user_id <<")		Question: "
-								 << child_ques.question << "\n";
-							// Display answer if any
-							if(child_ques.is_answered) {
-								cout << "		Answer: " << child_ques.answer << "\n\n";
-								cout << "Warning: Already answered. Answer will be updated";
+					else
+						for(auto &child_ques: children_quest)
+							if(child_ques.question_id == ques_id) {
+								Display_Edit_Question(child_ques);
+								// test module
+								print_map();
+								return;
 							}
-
-							cout << "Enter answer: ";
-							cin.ignore();
-							getline(cin, child_ques.answer);
-							child_ques.is_answered = true; // Now it is answered, consistency!
-
-							// test module
-							child_ques.print_Question();
-							return;
-
-
-						}
-					}
-
-				}
-			}
+			 }
 		}
 
 	}
+
+	void Delete_question() {
+		cout << "Enter Question id or -1 to cancel";
+		int ques_id;
+		cin>>ques_id;
+
+		// Access each pair in our map
+	   for(auto &thread_ques: parent_children_Questions) {
+		   auto p_ques = thread_ques.first;
+		   auto child_questions = thread_ques.second;
+
+		  // check the privilege I can delete only the questions asked to me!
+		  // check the keys
+		   if (p_ques.To_user_id == user_id) {
+			   if(p_ques.question_id == ques_id) {
+				   parent_children_Questions.erase(p_ques);
+				   return;
+
+			   }
+			   else {
+				   // check the values in the vector
+				   for(auto it = child_questions.begin(); it != child_questions.end();) {
+					   if(it-> question_id == ques_id) {
+						   it = child_questions.erase(it);
+						   return;
+					   }
+					   ++it;
+				   }
+			   }
+		  }
+	 }
+	 print_map(); // test_module
+  }
+
 
 
 };
@@ -259,8 +360,9 @@ void Load_ques_File() {
 			istringstream iss(question_info);
 
 			Question question;
-			string is_answered;
+			string is_answered, asked_anonymously;
 			string question_id;
+			string From_user_id, To_user_id;
 
 			// Get the questions info from the file & load it into the question object in a proper way!
 			// Note, file structure is comma separated!
@@ -268,11 +370,20 @@ void Load_ques_File() {
 			question.question_id = stoi(question_id);
 
 			getline(iss, question.parent_question_id, ',');
-			getline(iss, question.From_user_id, ',');
-			getline(iss, question.To_user_id, ',');
+			getline(iss, From_user_id, ',');
+			getline(iss, To_user_id, ',');
+
+			question.From_user_id = stoi(From_user_id);
+			question.To_user_id = stoi(To_user_id);
+
 			getline(iss, is_answered, ',');
 			if(is_answered == "1") // keep in mind default values in the  Question struct
 				question.is_answered = true;
+
+			getline(iss, asked_anonymously, ',');
+			if(asked_anonymously == "1")
+				question.asked_anonymously = true;
+
 			getline(iss, question.question, ',');
 			getline(iss, question.answer);
 
@@ -292,15 +403,9 @@ void Load_ques_File() {
 	for(auto &thread_question: parent_children_Questions) {
 			auto p_ques = thread_question.first;
 			auto children_questions = thread_question.second;
-
-			cout << p_ques.question_id << "," << p_ques.parent_question_id << "," << p_ques.From_user_id<< ","
-				 << p_ques.To_user_id<< "," <<p_ques.is_answered << "," << p_ques.question << "," << p_ques.answer
-				 << "\n";
-			for(auto &child_ques: children_questions) {
-				cout << child_ques.question_id << "," << child_ques.parent_question_id << "," << child_ques.From_user_id<< ","
-					 << child_ques.To_user_id<< "," << child_ques.is_answered << "," << child_ques.question << "," << child_ques.answer
-					 << "\n";
-			}
+			p_ques.print_Question(cout);
+			for(auto &child_ques: children_questions)
+				child_ques.print_Question(cout);
    }
 }
 
@@ -317,14 +422,9 @@ void Update_questionsFile() {
 		auto p_ques = thread_question.first;
 		auto children_questions = thread_question.second;
 
-		questions_output << p_ques.question_id << "," << p_ques.parent_question_id << "," << p_ques.From_user_id<< ","
-					     << p_ques.To_user_id<< "," <<p_ques.is_answered << "," << p_ques.question << "," << p_ques.answer;
-		questions_output << "\n";
-		for(auto &child_ques: children_questions) {
-			questions_output << child_ques.question_id << "," << child_ques.parent_question_id << "," << child_ques.From_user_id<< ","
-						     << child_ques.To_user_id<< "," << child_ques.is_answered << "," << child_ques.question << "," << child_ques.answer;
-			questions_output << "\n";
-		}
+		p_ques.print_Question(questions_output);
+		for(auto &child_ques: children_questions)
+			child_ques.print_Question(questions_output);
 	}
 	return;
 }
@@ -378,7 +478,6 @@ void load_usersFile() {
 
 		getline(iss, user.email, ',');
 
-
 		string allow_anonymous_question;
 		getline(iss,allow_anonymous_question);
 		user.allow_anonymous_questions = 1;
@@ -406,6 +505,21 @@ void Update_usersFile() {
 		users_output << user.user_id << "," << user.user_name << "," << user.password << ","
 					 << user.name << "," << user.email << "," << user.allow_anonymous_questions
 					 << "\n";
+	}
+}
+
+void List_users_feed() {
+	// List the questions that has answers so far
+	for(auto &thread_ques: parent_children_Questions) {
+		auto p_ques = thread_ques.first;
+		auto children_questions = thread_ques.second;
+
+		if(p_ques.is_answered == true) {
+			p_ques.print_feed_question();
+			for(auto &child_ques: children_questions)
+				if(child_ques.is_answered == true)
+					child_ques.print_feed_question();
+		}
 	}
 }
 
@@ -505,33 +619,30 @@ void Run(User user) {
 	Load_ques_File();
 	while(true) {
 		int choice = Menu();
-//		if(choice == 1) {
-//			user.print_ques_to_me();
-//		}
-//
-//		else if(choice == 2) {
-//			user.print_ques_from_me();
-//		}
-		if(choice == 3) {
+		if(choice == 1)
+			user.print_ques_to_me();
+
+		else if(choice == 2)
+			user.print_ques_from_me();
+
+		else if(choice == 3)
 			user.Answer_question();
-		}
-//		else if(choice == 4) {
-//			user.Delete_question();
-//		}
+
+		else if(choice == 4)
+			user.Delete_question();
+
 		else if(choice == 5) {
-//			 cout << "called menu choice 5" << "\n";
 			user.Ask_question();
 			update_last_session_file(); // update last question id
 		}
 		else if(choice == 6) {
 			List_system_users();
 		}
-//		else if(choice == 7) {
-//			List_users_feed();
-//		}
-//		else if(choice == 8) {
-//			return;
-//		}
+		else if(choice == 7)
+			List_users_feed();
+
+		else if(choice == 8)
+			return;
 
 		Update_questionsFile(); // is there a better position than that? i think this is the best one!
 	}
@@ -554,8 +665,6 @@ int main() {
     }
 
 	else {
-//		load_last_session_info(); // does internal checks
-
 		user = SignUp(); // does internal checks
 		update_last_session_file(); // edit user_id no edit to questions
 		Update_usersFile(); //
