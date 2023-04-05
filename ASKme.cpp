@@ -271,6 +271,7 @@ struct User {
 			return;
 		}
 	void Answer_question() {
+		// conflict! & or not!
 			// Answer a question or edits its answer
 			cout << "Enter Question id or -1 to cancel"; // if
 			int ques_id;
@@ -280,33 +281,35 @@ struct User {
 				return;
 			for(auto &thread_question: parent_children_Questions) {
 				auto p_ques = thread_question.first;
-				auto &children_quest = thread_question.second;
 
 				if(p_ques.To_user_id == user_id) { // check if it is to me, then its childs also to me!
 
 					if(p_ques.question_id == ques_id) { // I want to answer a specific question to me
+						auto c_children_questions = thread_question.second;
 						Display_Edit_Question(p_ques);  // Edit copy of the key
 
-						 //just edit map key information!
+						//just edit map key information!
 						parent_children_Questions.erase(thread_question.first);  // review chatgpt map key removal
-						parent_children_Questions[p_ques] = children_quest;      // Add the new updated key to the map
+						parent_children_Questions[p_ques] = c_children_questions;      // Add the new updated key to the map
 
 						// test module
 						print_map();
 						return;
 					}
 
-					else
-						for(auto &child_ques: children_quest)
+					else {
+						auto &children_questions = thread_question.second;
+						for(auto &child_ques: children_questions)
 							if(child_ques.question_id == ques_id) {
 								Display_Edit_Question(child_ques);
 								// test module
 								print_map();
 								return;
 							}
-			 }
-		}
+					}
+				}
 
+			}
 	}
 
 	void Delete_question() {
