@@ -80,7 +80,7 @@ struct Question {
 	void print_feed_question() {
 		if(parent_question_id != "-1")
 			cout <<"Thread parent Question Id (" << parent_question_id << ")";
-		cout <<"Question Id (" << question_id << ")";
+		cout <<" Question Id (" << question_id << ")";
 
 		if(!asked_anonymously)
 			cout <<" from user id(" << From_user_id <<")";
@@ -313,6 +313,7 @@ struct User {
 	}
 
 	void Delete_question() {
+		//Assumption/  This function doesn't affect last-session-info-file
 		cout << "Enter Question id or -1 to cancel";
 		int ques_id;
 		cin>>ques_id;
@@ -320,13 +321,14 @@ struct User {
 		// Access each pair in our map
 	   for(auto &thread_ques: parent_children_Questions) {
 		   auto p_ques = thread_ques.first;
-		   auto child_questions = thread_ques.second;
+		   auto &child_questions = thread_ques.second;
 
 		  // check the privilege I can delete only the questions asked to me!
 		  // check the keys
 		   if (p_ques.To_user_id == user_id) {
 			   if(p_ques.question_id == ques_id) {
 				   parent_children_Questions.erase(p_ques);
+				   print_map();
 				   return;
 
 			   }
@@ -335,6 +337,7 @@ struct User {
 				   for(auto it = child_questions.begin(); it != child_questions.end();) {
 					   if(it-> question_id == ques_id) {
 						   it = child_questions.erase(it);
+						   print_map();
 						   return;
 					   }
 					   ++it;
@@ -342,11 +345,9 @@ struct User {
 			   }
 		  }
 	 }
+
 	 print_map(); // test_module
   }
-
-
-
 };
 
 void Load_ques_File() {
@@ -412,6 +413,7 @@ void Load_ques_File() {
 			for(auto &child_ques: children_questions)
 				child_ques.print_Question(cout);
    }
+	cout << "--------------------------------------------------------\n";
 }
 
 
@@ -497,6 +499,7 @@ void load_usersFile() {
 		cout <<user.user_id << " " << user.user_name << " " << user.password << " "
 		     << user.name << " " << user.email << " " << user.allow_anonymous_questions
 			 << "\n";
+	cout << "-----------------------------------------------------------------------\n";
 }
 
 void Update_usersFile() {
@@ -612,7 +615,7 @@ int Menu() {  // called after signup or login operation // it does internal chec
 		cout << "Enter number in range 1-8: ";
 		cin >> choice;
 
-		cout << choice << "\n";
+//		cout << choice << "\n"; // test
 	}
 
 	while (choice < 1 || choice > 8);
@@ -621,9 +624,9 @@ int Menu() {  // called after signup or login operation // it does internal chec
 }
 
 void Run(User user) {
-	Load_ques_File();
 	while(true) {
 		int choice = Menu();
+		Load_ques_File();
 		if(choice == 1)
 			user.print_ques_to_me();
 
@@ -649,14 +652,14 @@ void Run(User user) {
 		else if(choice == 8)
 			return;
 
-		Update_questionsFile(); // is there a better position than that? i think this is the best one!
+		Update_questionsFile();
 	}
 }
 
 int main() {
 	User user;
 	int log_choice = AskMe();
-	load_last_session_info(); // just in case call it here we need it before signup to set up user_ids properly
+	load_last_session_info(); // call it here we need it before signup to set up user_ids properly
 	load_usersFile(); // does internal checks 2 reasons to call it here
 
 	if(log_choice == 1) {
