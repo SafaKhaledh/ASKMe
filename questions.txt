@@ -2,5 +2,8 @@
 2,1,2,1,1,0,Why do you think so!,Just Google.There is an answer on Quora.
 3,1,3,1,0,0,What about python?,
 4,1,3,1,1,1,Is it ok to learn java for oop?,Good choice
-5,1,3,1,1,1,Why so late in reply?,very sorry for that!
+5,1,2,1,1,1,Why so late in reply?,very sorry for that!
 6,-1,2,1,0,0,Free to meet?,
+7,-1,1,2,1,0,It was nice to chat to you,For my pleasure Dr Mostafa
+8,7,1,2,1,0,Please don't forget emailing the slides,for sure!
+9,-1,1,2,0,0,Noha How old are you?,
